@@ -1,9 +1,3 @@
-# create_tables.py
-"""
-Creates all database tables defined in models.py
-Run this once to set up your database schema.
-"""
-
 from app.database import engine, Base
 from app.models import TripData, PredictionLog
 
