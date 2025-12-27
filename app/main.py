@@ -174,6 +174,81 @@ async def get_model_info():
 
     return predictor.get_model_info()
 
+@app.post("/admin/setup-database")
+async def setup_database():
+    """
+    Admin endpoint to setup database tables and seed data.
+    Call this once after deployment to initialize the database.
+    """
+    try:
+        from app.database import SessionLocal
+        from app.models import TripData
+        import pandas as pd
+        from datetime import datetime
+
+        # Import engine from database module
+        from app.database import engine, Base
+
+        # Create tables
+        Base.metadata.create_all(bind=engine)
+
+        # Check existing data
+        db = SessionLocal()
+        existing_count = db.query(TripData).count()
+
+        if existing_count > 0:
+            db.close()
+            return {
+                "status": "already_setup",
+                "message": f"Database already has {existing_count} records",
+                "records": existing_count
+            }
+
+        # Load and seed data
+        df = pd.read_csv('data/sample_data.csv')
+
+        # Insert in batches
+        batch_size = 100
+        total_inserted = 0
+
+        for i in range(0, len(df), batch_size):
+            batch = df.iloc[i:i+batch_size]
+            trip_records = []
+
+            for _, row in batch.iterrows():
+                trip = TripData(
+                    distance_km=float(row['distance_km']),
+                    traffic_hours=float(row['traffic_hours']),
+                    vehicle_avg_speed=float(row['vehicle_avg_speed']),
+                    vehicle_type=str(row['vehicle_type']),
+                    road_condition=str(row['road_condition']),
+                    weather_condition=str(row['weather_condition']),
+                    actual_time_minutes=float(row['actual_time_minutes']),
+                    created_at=datetime.utcnow()
+                )
+                trip_records.append(trip)
+
+            db.bulk_save_objects(trip_records)
+            db.commit()
+            total_inserted += len(trip_records)
+
+        final_count = db.query(TripData).count()
+        db.close()
+
+        return {
+            "status": "success",
+            "message": "Database setup complete",
+            "tables_created": ["trip_data", "prediction_logs"],
+            "records_inserted": final_count
+        }
+
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 # Run the application (for local testing)
 if __name__ == "__main__":
