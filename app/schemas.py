@@ -4,42 +4,19 @@ from datetime import datetime
 
 
 class PredictionRequest(BaseModel):
-    """
-    Request schema for travel time prediction.
-    All fields are required and validated automatically.
-    """
-    distance_km: float = Field(
+    distance_km: float = Field(..., gt=0)
+    traffic_hours: float = Field(..., ge=0, lt=24)
+    vehicle_avg_speed: float = Field(..., gt=0, le=150)
+    vehicle_type: Literal['car', 'truck', 'motorcycle', 'suv', 'van', 'microbus', 'bus', 'jeep', 'scooter'] = Field(...)
+    road_condition: Literal['excellent', 'good', 'fair', 'poor'] = Field(...)
+    weather_condition: Literal['clear', 'rain', 'fog', 'snow', 'cloudy', 'dust'] = Field(...)
+    # CRITICAL ADDITION FOR NEPAL DATA
+    road_type: Literal['highway', 'hill', 'city', 'terai'] = Field(
         ...,
-        gt=0,
-        description="Distance in kilometers (must be positive)"
-    )
-    traffic_hours: float = Field(
-        ...,
-        ge=0,
-        lt=24,
-        description="Time of day in 24-hour format (0-23.99, e.g., 8.5 = 8:30 AM)"
-    )
-    vehicle_avg_speed: float = Field(
-        ...,
-        gt=0,
-        le=150,
-        description="Vehicle average speed in km/h (1-150)"
-    )
-    vehicle_type: Literal['car', 'truck', 'motorcycle', 'suv', 'van', 'microbus', 'bus', 'jeep', 'scooter'] = Field(
-        ...,
-        description="Type of vehicle"
-    )
-    road_condition: Literal['excellent', 'good', 'fair', 'poor'] = Field(
-        ...,
-        description="Current road condition"
-    )
-    weather_condition: Literal['clear', 'rain', 'fog', 'snow', 'cloudy', 'dust'] = Field(
-        ...,
-        description="Current weather condition"
+        description="Type of terrain/road (hill roads are significantly slower)"
     )
 
     class Config:
-        # Example for API documentation
         json_schema_extra = {
             "example": {
                 "distance_km": 200.0,
@@ -47,10 +24,10 @@ class PredictionRequest(BaseModel):
                 "vehicle_avg_speed": 70.0,
                 "vehicle_type": "car",
                 "road_condition": "good",
-                "weather_condition": "clear"
+                "weather_condition": "clear",
+                "road_type": "hill"
             }
         }
-
 
 class PredictionResponse(BaseModel):
     """
